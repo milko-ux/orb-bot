@@ -9,10 +9,14 @@ Env vars required (same pattern as the alpaca-bot):
     ALPACA_SECRET_KEY
 
 Notes:
-- Free Alpaca data (IEX feed) is fine for building; before validation is
-  trusted, pull SIP data if the account has it, since IEX volume is a
-  fraction of consolidated volume and the volume-based signal will be
-  distorted otherwise. This matters for the yellow-bar logic.
+- Alpaca's free/Basic plan restricts LIVE real-time data to IEX only, but
+  historical queries (end time 15+ minutes old) can request the full SIP
+  (all-exchanges) feed for free. Since backtesting/validation only ever
+  touches historical data, we default to feed='sip' here — this matters a
+  lot for the yellow-bar logic, which depends on accurate volume. IEX
+  alone is ~2-3% of consolidated volume and would badly distort it.
+  Live trading later (Step 4+) still only sees IEX in real time unless
+  the account is upgraded — that's a separate decision for that stage.
 - We request raw 1Min bars and filter to regular session downstream; the
   opening-range calculator anchors to 09:30 America/New_York itself.
 """
@@ -29,8 +33,8 @@ CACHE_DIR = Path(os.environ.get("ORB_DATA_DIR", "data_cache"))
 CANONICAL_COLS = ["open", "high", "low", "close", "volume"]
 
 
-def _cache_path(symbol: str, start: datetime, end: datetime, timeframe: str) -> Path:
-    key = f"{symbol}_{timeframe}_{start:%Y%m%d}_{end:%Y%m%d}.parquet"
+def _cache_path(symbol: str, start: datetime, end: datetime, timeframe: str, feed: str) -> Path:
+    key = f"{symbol}_{timeframe}_{feed}_{start:%Y%m%d}_{end:%Y%m%d}.parquet"
     return CACHE_DIR / key
 
 
@@ -58,10 +62,17 @@ def fetch_bars(
     end: datetime,
     timeframe: str = "1Min",
     use_cache: bool = True,
+    feed: str = "sip",
 ) -> pd.DataFrame:
-    """Fetch (or load cached) historical bars for one symbol."""
+    """Fetch (or load cached) historical bars for one symbol.
+
+    feed: 'sip' (default) for full consolidated volume — free for historical
+    queries ending 15+ minutes ago, which every backtest query does. Pass
+    'iex' explicitly only to deliberately reproduce what the live bot will
+    see in real time before an account upgrade.
+    """
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    path = _cache_path(symbol, start, end, timeframe)
+    path = _cache_path(symbol, start, end, timeframe, feed)
     if use_cache and path.exists():
         return pd.read_parquet(path)
 
@@ -70,12 +81,19 @@ def fetch_bars(
     from alpaca.data.historical import StockHistoricalDataClient
     from alpaca.data.requests import StockBarsRequest
     from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
+    from alpaca.data.enums import DataFeed
 
     client = StockHistoricalDataClient(
         os.environ["ALPACA_API_KEY"], os.environ["ALPACA_SECRET_KEY"]
     )
     tf = TimeFrame(1, TimeFrameUnit.Minute) if timeframe == "1Min" else TimeFrame.Day
-    req = StockBarsRequest(symbol_or_symbols=symbol, timeframe=tf, start=start, end=end)
+    req = StockBarsRequest(
+        symbol_or_symbols=symbol,
+        timeframe=tf,
+        start=start,
+        end=end,
+        feed=DataFeed(feed),
+    )
     raw = client.get_stock_bars(req).df
 
     # alpaca-py returns a MultiIndex (symbol, timestamp) — drop the symbol level.
