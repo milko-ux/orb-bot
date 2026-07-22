@@ -25,8 +25,8 @@ scripts/
 ## Build order status
 
 1. **Data pipeline + opening-range calculator — THIS DELIVERY.** Correctness proven on synthetic data (boundary exclusivity, DST transitions, incomplete-data rejection, no premarket leakage). Final sign-off: run `scripts/verify_ranges.py` on the droplet with real data and spot-check ~5 days against TradingView.
-2. Signal engine (real yellow-bar logic) + basic backtester with cost model.
-3. Validation pipeline: Optuna optimization → SPP perturbation → Monte Carlo → out-of-sample holdout.
+2. Signal engine + backtester with cost model — **DONE** (volume-confirmation logic locked in; threshold tuned by optimizer).
+3. Validation pipeline: Optuna → SPP → Monte Carlo → out-of-sample — **DONE** (`scripts/run_validation.py`). Awaiting first real-data run.
 4. Alpaca paper trading, minimum 8 weeks, varied conditions. Telegram status + kill switch.
 5. Live, minimum size, risk caps active.
 6. Phase 2: OANDA adapter, London/NY session anchors (already defined in config, disabled).

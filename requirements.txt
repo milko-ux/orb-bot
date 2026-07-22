@@ -3,6 +3,6 @@ numpy>=1.26
 pyarrow>=14.0
 alpaca-py>=0.21
 pytest>=8.0
-# Added at step 3 (validation pipeline):
-# vectorbt
-# optuna
+
+
+optuna>=3.6
