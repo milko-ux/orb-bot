@@ -1,0 +1,16 @@
+Run: SPY 2022-01-01 -> 2026-07-01, 150 trials
+Data: 937,462 bars across 1185 sessions
+
+======================================================================
+VALIDATION REPORT
+======================================================================
+Best params: {'range_minutes': 15, 'rel_volume_mult': 1.7, 'stop_mode': 'range', 'atr_stop_mult': 2.75, 'take_profit_r': 2.75, 'use_trailing': False}
+In-sample : trades=847  win=43.8%  avgR=+0.03  PF=1.08  CAR=+3.8%  MaxDD=12.5%  MAR=0.30  Sharpe=0.54  Sortino=1.74  score=0.301
+Out-sample: trades=277  win=41.5%  avgR=-0.03  PF=0.87  CAR=-5.4%  MaxDD=8.1%  MAR=-0.67  Sharpe=-0.85  Sortino=-2.04  score=0.000
+----------------------------------------------------------------------
+[PASS] Optimization: best in-sample score 0.301 over 150 trials (847 trades)
+[PASS] SPP: median retention 92% (need >=50%), profitable under perturbation 100% (need >=80%)
+[FAIL] Monte Carlo: 95th-pct worst drawdown 28.0% (limit 20%), P(net loss over period) 24.4%, paths=2000
+[FAIL] Out-of-sample: OOS score 0.000 vs IS 0.301 — retention 0% (need >=40% and positive)
+----------------------------------------------------------------------
+VERDICT: REJECTED — do not trade this configuration

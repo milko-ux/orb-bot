@@ -38,6 +38,7 @@ class StageReport:
     name: str
     passed: bool
     details: str
+    inconclusive: bool = False
 
 
 @dataclass
@@ -60,12 +61,18 @@ class ValidationReport:
             lines.append(f"Out-sample: {self.out_of_sample.summary()}")
         lines.append("-" * 70)
         for s in self.stages:
-            lines.append(f"[{'PASS' if s.passed else 'FAIL'}] {s.name}: {s.details}")
+            tag = "????" if s.inconclusive else ("PASS" if s.passed else "FAIL")
+            lines.append(f"[{tag}] {s.name}: {s.details}")
         lines.append("-" * 70)
-        lines.append(
-            "VERDICT: ELIGIBLE FOR PAPER TRADING" if self.passed
-            else "VERDICT: REJECTED — do not trade this configuration"
-        )
+        if self.passed:
+            lines.append("VERDICT: ELIGIBLE FOR PAPER TRADING")
+        elif any(s.inconclusive for s in self.stages):
+            lines.append(
+                "VERDICT: INCONCLUSIVE — not enough data to judge this configuration. "
+                "This is NOT a pass and NOT a rejection. Do not trade."
+            )
+        else:
+            lines.append("VERDICT: REJECTED — do not trade this configuration")
         return "\n".join(lines)
 
 
@@ -147,7 +154,12 @@ def monte_carlo_check(
     result = run_backtest(bars_is, cfg)
     rs = np.array([t.r_multiple for t in result.trades])
     if len(rs) < 30:
-        return StageReport("Monte Carlo", False, f"only {len(rs)} trades — not enough to resample")
+        return StageReport(
+            "Monte Carlo",
+            False,
+            f"INCONCLUSIVE — only {len(rs)} in-sample trades, not enough to resample",
+            inconclusive=True,
+        )
 
     rng = np.random.default_rng(seed)
     risk_frac = cfg.risk.risk_per_trade_pct / 100
@@ -175,7 +187,23 @@ def monte_carlo_check(
 def out_of_sample_check(
     bars_oos: pd.DataFrame, base_cfg: BotConfig, params: dict, is_score: float
 ) -> tuple[StageReport, Metrics]:
+    from orb.backtest.metrics import MIN_TRADES
+
     score, m = _score(bars_oos, apply_params(base_cfg, params))
+
+    if m.n_trades < MIN_TRADES:
+        return (
+            StageReport(
+                "Out-of-sample",
+                False,
+                f"INCONCLUSIVE — only {m.n_trades} out-of-sample trades, need "
+                f">={MIN_TRADES} before any verdict is meaningful. Extend the date "
+                f"range. Do NOT read this as a strategy result.",
+                inconclusive=True,
+            ),
+            m,
+        )
+
     retention = score / is_score if is_score > 0 else 0.0
     passed = score > 0 and retention >= OOS_RETENTION
     return (

@@ -35,13 +35,28 @@ def main():
     report = run_pipeline(bars, BotConfig(), n_trials=n_trials)
     print(report.summary())
 
+    from pathlib import Path as _Path
+    _Path("reports").mkdir(exist_ok=True)
+    _stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    _log = _Path("reports") / (
+        f"{symbol}_{start:%Y%m%d}_{end:%Y%m%d}_{n_trials}trials_{_stamp}.txt"
+    )
+    with open(_log, "w") as _f:
+        _f.write(f"Run: {symbol} {start.date()} -> {end.date()}, {n_trials} trials\n")
+        _f.write(f"Data: {len(bars):,} bars across {n_days} sessions\n\n")
+        _f.write(report.summary() + "\n")
+    print(f"\nReport saved to {_log}")
+
     if report.passed:
         out = f"validated_params_{symbol}.json"
         with open(out, "w") as f:
             json.dump(report.best_params, f, indent=2)
         print(f"\nSaved winning parameters to {out}")
     else:
-        print("\nNo parameters saved — configuration rejected by the pipeline.")
+        if any(getattr(st, "inconclusive", False) for st in report.stages):
+            print("\nNo parameters saved — pipeline could not reach a verdict.")
+        else:
+            print("\nNo parameters saved — configuration rejected by the pipeline.")
 
 
 if __name__ == "__main__":

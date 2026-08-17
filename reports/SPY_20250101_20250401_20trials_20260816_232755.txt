@@ -1,0 +1,16 @@
+Run: SPY 2025-01-01 -> 2025-04-01, 20 trials
+Data: 49,003 bars across 72 sessions
+
+======================================================================
+VALIDATION REPORT
+======================================================================
+Best params: {'range_minutes': 15, 'rel_volume_mult': 1.5, 'stop_mode': 'range', 'atr_stop_mult': 3.0, 'take_profit_r': 2.5, 'use_trailing': False}
+In-sample : trades=43  win=53.5%  avgR=+0.25  PF=1.62  CAR=+25.5%  MaxDD=1.5%  MAR=16.95  Sharpe=3.14  Sortino=9.09  score=16.948
+Out-sample: trades=17  win=58.8%  avgR=+0.64  PF=3.18  CAR=+89.6%  MaxDD=1.1%  MAR=80.57  Sharpe=7.22  Sortino=20.23  score=0.000
+----------------------------------------------------------------------
+[PASS] Optimization: best in-sample score 16.948 over 20 trials (43 trades)
+[PASS] SPP: median retention 90% (need >=50%), profitable under perturbation 100% (need >=80%)
+[PASS] Monte Carlo: 95th-pct worst drawdown 5.3% (limit 20%), P(net loss over period) 10.3%, paths=2000
+[????] Out-of-sample: INCONCLUSIVE — only 17 out-of-sample trades, need >=30 before any verdict is meaningful. Extend the date range. Do NOT read this as a strategy result.
+----------------------------------------------------------------------
+VERDICT: INCONCLUSIVE — not enough data to judge this configuration. This is NOT a pass and NOT a rejection. Do not trade.

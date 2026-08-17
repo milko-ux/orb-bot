@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+data_cache/
+*.log
+*.bak
+validation_output.txt
